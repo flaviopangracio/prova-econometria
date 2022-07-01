@@ -1,6 +1,7 @@
 ## Bibliotecas utilizadas
 library(descr)
 library(data.table)
+library(dplyr)
 
 ## Dicionários de dados (retirados das planilhas da pasta "dicionarios")
 dv_domicilios <- read.csv("utilitarios/dv_domicilios.csv", header=FALSE)
@@ -48,3 +49,47 @@ dados_pessoas <- data.table::fread(
 
 nrow(dados_domicilios) # Número de domicílios da amostra: 151189
 nrow(dados_pessoas) # Número de pessoas da amostra: 356904
+
+df_domicilios <- dplyr::as_tibble(dados_domicilios)
+df_pessoas <- dplyr::as_tibble(dados_pessoas)
+
+cl_pessoas = df_pessoas |>
+  dplyr::select(
+    ano="V0101",
+    uf="UF",
+    controle="V0102",
+    serie="V0103",
+    ordem="V0301",
+    sexo="V0302",
+    idade="V8005",
+    condicao_na_familia="V0402",
+    cor="V0404",
+    anos_de_estudo="V4803",
+    rendimento_mensal_familiar_per_capita="V4722"
+  )
+
+cl_domicilios = df_domicilios |>
+  dplyr::select(
+    ano="V0101",
+    uf="UF",
+    controle="V0102",
+    serie="V0103",
+    total_de_moradores="V0105",
+    condicao_de_ocupacao_do_domicilio="V0207",
+    strat="V4617",
+    psu="V4618"
+  )
+
+joined_df <- dplyr::inner_join(
+  cl_pessoas,
+  cl_domicilios,
+  by=c("ano", "uf", "controle", "serie")
+)
+
+joined_df <- joined_df |> filter(!is.na(rendimento_mensal_familiar_per_capita))
+
+pessoa_de_referencia_na_familia <- ifelse(joined_df$condicao_na_familia == 1, 1, 0)
+
+joined_df$pessoa_de_referencia_na_familia <- pessoa_de_referencia_na_familia
+
+write.csv(joined_df, "dados/base_final.csv")
