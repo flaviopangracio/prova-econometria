@@ -53,6 +53,8 @@ nrow(dados_pessoas) # Número de pessoas da amostra: 356904
 df_domicilios <- dplyr::as_tibble(dados_domicilios)
 df_pessoas <- dplyr::as_tibble(dados_pessoas)
 
+
+## Selecionando e renomeando as variáveis utilizadas
 cl_pessoas = df_pessoas |>
   dplyr::select(
     ano="V0101",
@@ -86,10 +88,46 @@ joined_df <- dplyr::inner_join(
   by=c("ano", "uf", "controle", "serie")
 )
 
+## Removendo indivíduos sem rendimento mensal familiar per capita.
 joined_df <- joined_df |> filter(!is.na(rendimento_mensal_familiar_per_capita))
 
+## Criando variável binária para pessoa de referência na família
 pessoa_de_referencia_na_familia <- ifelse(joined_df$condicao_na_familia == 1, 1, 0)
 
 joined_df$pessoa_de_referencia_na_familia <- pessoa_de_referencia_na_familia
 
-write.csv(joined_df, "dados/base_final.csv")
+## Sexo como variável binária (Masculino = 1, Feminino = 0)
+joined_df$sexo <- ifelse(joined_df$sexo == 2, 1, 0)
+
+## Criando dummies para cor/raça
+
+joined_df$cor_branca <- ifelse(joined_df$cor == 2, 1, 0)
+joined_df$cor_preta <- ifelse(joined_df$cor == 4, 1, 0)
+joined_df$cor_amarela <- ifelse(joined_df$cor == 6, 1, 0)
+joined_df$cor_parda <- ifelse(joined_df$cor == 8, 1, 0)
+joined_df$cor_indigena <- ifelse(joined_df$cor == 0, 1, 0)
+joined_df$cor_sem_declaracao <- ifelse(joined_df$cor == 9, 1, 0)
+
+
+
+## Criando dummy de casa própria (Imóvel pago ou em pagamento: 1. Caso contrário: 0)
+joined_df$casa_propria <- ifelse(joined_df$condicao_de_ocupacao_do_domicilio == 1 | joined_df$condicao_de_ocupacao_do_domicilio == 2, 1, 0)
+
+
+## Amostra para indivíduos com renda familiar per capita entre R$500,00 e R$20.000,00
+amostra <- joined_df |>
+  filter(rendimento_mensal_familiar_per_capita >= 500 & rendimento_mensal_familiar_per_capita <= 20000)
+
+## Estimando um Logit para os dados da amostra
+reglogit <- glm("casa_propria ~ rendimento_mensal_familiar_per_capita", data=amostra,family = binomial(link="logit"))
+
+summary(reglogit)
+
+## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 1000
+1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*1000))) # 0.7428796
+
+## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 3000
+1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*3000))) # 0.7657695
+
+## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 5000
+1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*5000))) # 0.7872053
