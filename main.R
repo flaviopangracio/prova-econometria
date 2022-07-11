@@ -125,13 +125,39 @@ reglogit <- glm("casa_propria ~ rendimento_mensal_familiar_per_capita", data=amo
 summary(reglogit)
 
 ## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 1000
-1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*1000))) # 0.7428796
+mil <- 1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*1000))) # 0.7428796
 
 ## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 3000
-1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*3000))) # 0.7657695
+tresmil <- 1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*3000))) # 0.7657695
 
 ## Probabilidade de um indivíduo possuir uma casa, com renda mensal per capita de 5000
-1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*5000))) # 0.7872053
+cincomil <- 1/(1 + exp(-(reglogit$coefficients[1] + reglogit$coefficients[2]*5000))) # 0.7872053
+
+## Intervalo de confiança para os parâmtros
+intervalo <- cbind(OR=coef(reglogit), confint(reglogit))
+
+##                                                OR        2.5 %       97.5 %
+##(Intercept)                           9.991964e-01 9.869193e-01 1.011473e+00
+##rendimento_mensal_familiar_per_capita 6.179301e-05 5.847868e-05 6.512564e-05
+
+## Intervalo de confiança 1000 reais, alpha = 0.05:
+1/(1 + exp(-(intervalo[3] + intervalo[4]*1000))) # 0.7398902
+1/(1 + exp(-(intervalo[5] + intervalo[6]*1000))) # 0.7458497
+## 0.7398902 < 0.7428796 < 0.7458497
+
+## Intervalo de confiança 3000 reais, alpha = 0.05:ano
+1/(1 + exp(-(intervalo[3] + intervalo[4]*3000))) # 0.7617604
+1/(1 + exp(-(intervalo[5] + intervalo[6]*3000))) # 0.7697411
+## 0.7617604 < 0.7657695 < 0.7697411
+
+## Intervalo de confiança 5000 reais, alpha = 0.05:ano
+1/(1 + exp(-(intervalo[3] + intervalo[4]*5000))) # 0.7823328
+1/(1 + exp(-(intervalo[5] + intervalo[6]*5000))) # 0.7920128
+## 0.7823328 < 0.7872053 < 0.7920128
+
+#### Como não há pontos em comum nos intervalos de confiança com alpha de 5%,
+#### podemos dizer que os resultados são estatisticamente diferentes.
+
 
 ## Efeitos marginais
 logitescalar <-(mean(dlogis(predict(reglogit,type='link'))))
@@ -139,3 +165,6 @@ logitescalar * coef(reglogit)
 
 # Intercept: 1.791026e-01
 # rendimento_mensal_familiar_per_capita: 1.107619e-05
+
+#### Os efeitos marginais nos dizem que a variação de 1 unidade na renda per capita mensal,
+#### aumenta em 1.107619e-05 a probabilidade de um indivíduo possuir uma casa.
